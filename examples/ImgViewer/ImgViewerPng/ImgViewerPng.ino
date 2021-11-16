@@ -118,6 +118,7 @@ void *myOpen(const char *filename, int32_t *size)
   else
   {
     *size = pngFile.size();
+    Serial.printf("Opened '%s', size: %d\n", filename, *size);
   }
 
   return &pngFile;
@@ -135,6 +136,7 @@ int32_t myRead(PNGFILE *handle, uint8_t *buffer, int32_t length)
     return 0;
   return pngFile.read(buffer, length);
 }
+
 int32_t mySeek(PNGFILE *handle, int32_t position)
 {
   if (!pngFile)
@@ -149,7 +151,7 @@ void PNGDraw(PNGDRAW *pDraw)
   uint8_t usMask[320];
 
   // Serial.printf("Draw pos = 0,%d. size = %d x 1\n", pDraw->y, pDraw->iWidth);
-  png.getLineAsRGB565(pDraw, usPixels, RGB565_LITTLE_ENDIAN, 0x00000000);
+  png.getLineAsRGB565(pDraw, usPixels, PNG_RGB565_LITTLE_ENDIAN, 0x00000000);
   png.getAlphaMask(pDraw, usMask, 1);
   gfx->draw16bitRGBBitmap(xOffset, yOffset + pDraw->y, usPixels, usMask, pDraw->iWidth, 1);
 }
@@ -204,14 +206,21 @@ void setup()
     rc = png.open(PNG_FILENAME, myOpen, myClose, myRead, mySeek, PNGDraw);
     if (rc == PNG_SUCCESS)
     {
-      xOffset = (w - png.getWidth()) / 2;
-      yOffset = (h - png.getHeight()) / 2;
+      int16_t pw = png.getWidth();
+      int16_t ph = png.getHeight();
+
+      xOffset = (w - pw) / 2;
+      yOffset = (h - ph) / 2;
 
       rc = png.decode(NULL, 0);
 
-      Serial.printf("Time used: %lu\n", xOffset, yOffset, millis() - start);
+      Serial.printf("Draw offset: (%d, %d), time used: %lu\n", xOffset, yOffset, millis() - start);
       Serial.printf("image specs: (%d x %d), %d bpp, pixel type: %d\n", png.getWidth(), png.getHeight(), png.getBpp(), png.getPixelType());
       png.close();
+    }
+    else
+    {
+      Serial.println("png.open() failed!");
     }
   }
 
@@ -236,6 +245,10 @@ void loop()
     Serial.printf("Draw offset: (%d, %d), time used: %lu\n", xOffset, yOffset, millis() - start);
     Serial.printf("image specs: (%d x %d), %d bpp, pixel type: %d\n", png.getWidth(), png.getHeight(), png.getBpp(), png.getPixelType());
     png.close();
+  }
+  else
+  {
+    Serial.println("png.open() failed!");
   }
 
   delay(1000); // 1 second
